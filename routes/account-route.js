@@ -6,7 +6,8 @@ const {
   changePassword,
   getUserAccount,
   editUserAccount,
-  deleteUserAccount
+  deleteUserAccount,
+  uploadUserAvatar
 } = require('../controllers/account-controller');
 const {
   editAccountValidationSchema,
@@ -18,6 +19,7 @@ router.get('/', asyncHandler(protect), asyncHandler(getUserAccount));
 router.patch(
   '/',
   asyncHandler(protect),
+  uploadUserAvatar,
   validator(editAccountValidationSchema),
   asyncHandler(editUserAccount)
 );

@@ -1,6 +1,38 @@
+const { join } = require('node:path');
+const { access, constants, unlink } = require('node:fs/promises');
+const multer = require('multer');
+const sharp = require('sharp');
 const User = require('../models/user-model');
 const { AppError } = require('../utils/app-error');
 
+// servies
+// setup multer
+const multerUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    file.mimetype.startsWith('image')
+      ? cb(null, true)
+      : cb(new AppError(400, 'not an image format.'), false);
+  }
+});
+
+const uploadUserAvatar = multerUpload.single('avatar');
+
+const resizeUserAvatar = async (userId, file = null) => {
+  if (!file) return file;
+
+  const userAvatarFilename = `users-${userId}-${Date.now()}.jpeg`;
+
+  await sharp(file.buffer)
+    .resize(100, 100)
+    .toFormat('jpeg')
+    .jpeg({ quality: 90 })
+    .toFile(join(__dirname, `../public/images/avatars/${userAvatarFilename}`));
+
+  return userAvatarFilename;
+};
+
+// controllers
 const getUserAccount = async (req, res, next) => {
   const { userId } = req.session;
 
@@ -34,6 +66,18 @@ const editUserAccount = async (req, res, next) => {
     );
   }
 
+  const avatar = await resizeUserAvatar(user._id, req.file);
+
+  if (!!avatar && user.avatar !== 'user-default-avatar.jpeg') {
+    await access(
+      join(__dirname, `../public/images/avatars/${user.avatar}`),
+      constants.F_OK
+    );
+
+    await unlink(join(__dirname, `../public/images/avatars/${user.avatar}`));
+  }
+
+  user.avatar = avatar ?? user.avatar;
   user.firstname = firstname ?? user.firstname;
   user.lastname = lastname ?? user.lastname;
   user.username = username ?? user.username;
@@ -86,5 +130,6 @@ module.exports = {
   changePassword,
   getUserAccount,
   editUserAccount,
-  deleteUserAccount
+  deleteUserAccount,
+  uploadUserAvatar
 };
