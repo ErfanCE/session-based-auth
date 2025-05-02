@@ -1,21 +1,11 @@
 const { join } = require('node:path');
 const { access, constants, unlink } = require('node:fs/promises');
-const multer = require('multer');
 const sharp = require('sharp');
 const User = require('../models/user-model');
 const { AppError } = require('../utils/app-error');
+const { multerUpload } = require('../utils/multer-config');
 
 // servies
-// setup multer
-const multerUpload = multer({
-  storage: multer.memoryStorage(),
-  fileFilter: (req, file, cb) => {
-    file.mimetype.startsWith('image')
-      ? cb(null, true)
-      : cb(new AppError(400, 'not an image format.'), false);
-  }
-});
-
 const uploadUserAvatar = multerUpload.single('avatar');
 
 const resizeUserAvatar = async (userId, file = null) => {
